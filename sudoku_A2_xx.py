@@ -3,43 +3,41 @@ import copy
 
 class Sudoku(object):
     def __init__(self, puzzle):
-        # you may add more attributes if you need
-        self.puzzle = puzzle # self.puzzle is a list of lists
-
-        # 2-D table of bool
-        # False if the value hasn't been fixed. True otherwise
-        self.puzzle_bool = [[False for i in range(len(puzzle[0]))] \
-                            for i in range(len(puzzle))]
-        
+        self.puzzle = puzzle # models the sudoku as a list of lists
         self.ans = copy.deepcopy(puzzle) # self.ans is a list of lists
-        self.row_set = {}
-        self.col_set = {}
-        self.box_set = {}
 
         # initialising box top left coordinates
         self.box_coords = [(0,0), (0,3), (0,6), (3,0),\
                            (3,3), (3,6), (6,0), (6,3), (6,6)]
 
-        # setting up all the contraints
+        # Since domain set of each cell (variable) is unique among
+        # row, col and box, we can represent the domains by rows, cols and boxes
+        # stores the domain of each row, key: row_number, value: domain_set
+        self.row_set = {}
+        # stores the domain of each col, key: col_number, value: domain_set
+        self.col_set = {}
+        # stores the domain of each box, key: box_top_left_coord, value: domain_set
+        self.box_set = {}
+
+        # setting up the contraints
         self.initialise_sets()
         self.init_arc_consistency()
 
-    # initial removal of domains using arc consistency algorithm
-    def init_arc_consistency(self):
-        for i, row in enumerate(self.puzzle):
-            for j, ele in enumerate(row):
-                if ele != 0:
-                    # remove these elements from the domain
-                    self.manage_domains(i, j, ele, False)
-
-
     def initialise_sets(self):
-        # initialising box_set
+        '''initialising domains of rows, cols, and boxes'''
         for coord in self.box_coords:
                 box_set[coord] = set([1,2,3,4,5,6,7,8,9])
         for i in range(9):
             row_set[i] = set([1,2,3,4,5,6,7,8,9])
             col_set[i] = set([1,2,3,4,5,6,7,8,9])
+            
+    def init_arc_consistency(self):
+        '''initial removal of domains using arc consistency algorithm'''
+        for i, row in enumerate(self.puzzle):
+            for j, ele in enumerate(row):
+                if ele != 0:
+                    # remove these elements from the domain
+                    self.manage_domains(i, j, ele, False)
             
     def manage_domains(self, i, j, ele, to_add):
         '''
@@ -68,9 +66,6 @@ class Sudoku(object):
         '''
         Pre-condition: the initial puzzle given must be valid and solvable
         '''
-        # don't print anything here. just resturn the answer
-        # self.ans is a list of lists
-
         self.solver_helper(self.ans)
         return self.ans
 
@@ -133,6 +128,8 @@ class Sudoku(object):
                         min_set_size = cell_set_size
                         min_set = cell_set
                         min_set_coord = coord
+                        
+        # min_set is None if all cells in puzzle is filled up
         return (min_set, min_set_coord)
 
     def in_box_set(self, ele, i, j):
