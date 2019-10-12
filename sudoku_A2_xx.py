@@ -65,40 +65,53 @@ class Sudoku(object):
             box_set.remove(ele)
         
     def solve(self):
-        # Main idea
-        
+        '''
+        Pre-condition: the initial puzzle given must be valid and solvable
+        '''
         # don't print anything here. just resturn the answer
         # self.ans is a list of lists
 
         self.solver_helper(self.ans)
-        
         return self.ans
 
-    # returns True if it manages to solve
-    # returns False if it encounters an empty domain
     def solver_helper(self, puzzle):
-        # find cell with smallest domain
-        # then run a for-loop and continue to recurse with a value fixed
-        cell_set, coord = self.find_most_constrained_cell(puzzle, puzzle_bool)
+        '''
+        Takes a partially/fully solved sudoku puzzle as input
+        Returns True if it can be solved
+        Returns False if it cannot be solved (one of the cell domains is empty)
+        '''
+        
+        # find cell with smallest domain (most constrained variable heuristic)
+        cell_set, coord = self.find_most_constrained_cell(puzzle)
+
+        # if puzzle is completed, then return True
+        if cell_set is None:
+            return True
+        
+        # if there is an empty domain, return False
         if len(cell_set) == 0:
             return False
         else:
             for ele in cell_set:
                 i, j = coord
                 puzzle[i][j] = ele
-                manage_domains(i, j, ele, False)
+                manage_domains(i, j, ele, False)  # remove ele from domains
                 if not self.solver_helper(puzzle):
                     # if this assignment does not work
                     # then backtrack and undo the assignment
                     puzzle[i][j] = 0
-                    manage_domains(i, j, ele, True)
-                    continue
+                    manage_domains(i, j, ele, True) # add ele back to domains
                 else:
                     return True
             return False
         
     # using most constrained variable heuristic
-    def find_most_constrained_cell(self, puzzle, puzzle_bool):
+    def find_most_constrained_cell(self, puzzle):
+        '''
+        This is a HEURISTIC function.
+        Finds the cell with the smallest domain
+        And return a tuple of (cell's domain, cell's coordinate)
+        '''
         min_set_size = float('inf')
         min_set = None
         min_set_coord = None
@@ -108,11 +121,11 @@ class Sudoku(object):
                 # if the variable is not fixed yet
                 if puzzle[i][j] != 0:
                     coord = (i, j)
-                    cell_set = self.get_cell_domain(coord)
+                    cell_set = self.get_cell_domain(i, j)
                     cell_set_size = len(cell_set)
 
                     # if you found a cell with empty domain
-                    # return it immediately
+                    # stop the search and return it immediately
                     if cell_set_size == 0:
                         return (cell_set, coord)
                     
@@ -122,9 +135,12 @@ class Sudoku(object):
                         min_set_coord = coord
         return (min_set, min_set_coord)
 
-    
-    # check whether element is legal within the box surrounding the cell_ij
-    def check_in_box_set(self, ele, i, j):
+    def in_box_set(self, ele, i, j):
+        '''
+        Takes in element and coordinate
+        If the element is within box domain, return True
+        Otherwise, return False
+        '''
         top_left_i = i // 3
         top_left_j = j // 3
         if item in self.box_set[(top_left_i, top_left_j)]:
@@ -132,21 +148,18 @@ class Sudoku(object):
         else:
             return False
 
-    # checks for common elements between row_set, col_set and box_set
-    def get_cell_domain(self, coord):
+    def get_cell_domain(self, i, j):
         '''
         Takes in the coordinate of a cell
-        Returns the domain of the cell,
-        which is the intersection between the 3 domains: row_set, col_set, box_set 
+        Returns the domain of the cell, equivalent to the intersection
+        between the 3 domains: row_set, col_set, box_set 
         '''
         ele_set = set()
-        for item in self.row_set[coord]:
-            if item in self.col_set[coord] and self.check_in_box_set(item, coord[0], coord[1]):
+        for ele in self.row_set[i]:
+            if ele in self.col_set[j] and self.in_box_set(ele, i, j):
                 ele_set.add(item)
         return ele_set
 
-    # you may add more classes/functions if you think is useful
-    # However, ensure all the classes/functions are in this file ONLY
 
 if __name__ == "__main__":
     # STRICTLY do NOT modify the code in the main function here
