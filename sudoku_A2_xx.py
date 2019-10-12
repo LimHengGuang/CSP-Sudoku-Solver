@@ -6,6 +6,51 @@ class Sudoku(object):
         # you may add more attributes if you need
         self.puzzle = puzzle # self.puzzle is a list of lists
         self.ans = copy.deepcopy(puzzle) # self.ans is a list of lists
+        self.row_set = {}
+        self.col_set = {}
+        self.box_set = {}
+
+        # initialising box top left coordinates
+        self.box_coords = [(0,0), (0,3), (0,6), (3,0),\
+                           (3,3), (3,6), (6,0), (6,3), (6,6)]
+
+        # setting up all the contraints
+        self.initialise_row_set()
+    
+    def initialise_row_set(self):
+        # forming row_set
+        self.form_set(self.puzzle, self.row_set)
+        
+        # forming col_set
+        transposed_puzzle = self.transpose_puzzle(self.puzzle)
+        self.form_set(transposed_puzzle, self.col_set)
+
+        # forming box_set
+        self.form_box_set(self.puzzle, self.box_set)
+                               
+    def form_box_set(self, puzzle, set_dic):
+        for coord in self.box_coords:
+            i, j = coord
+            set_dic[coord] = set()
+            for row in range(i, i + 3):
+                for col in range(j, j + 3):
+                    if self.puzzle[row][col] != 0:
+                        set_dic[coord].add(self.puzzle[row][col])
+                        
+    def form_set(self, puzzle, set_dic):
+        for i, row in enumerate(puzzle):
+            set_dic[i] = set()
+            for ele in row:
+                if ele != 0:
+                    set_dic[i].add(ele)
+        
+    def transpose_puzzle(self, puzzle):
+        # Transpose the puzzle first
+        transposed_puzzle = [[0 for i in range(9)] for j in range(9)]
+        for i, row in enumerate(puzzle):
+            for j, ele in enumerate(row):
+                transposed_puzzle[j][i] = ele
+        return transposed_puzzle
 
     def solve(self):
         #TODO: Your code here
