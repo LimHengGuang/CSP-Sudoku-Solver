@@ -15,34 +15,40 @@ class Sudoku(object):
                            (3,3), (3,6), (6,0), (6,3), (6,6)]
 
         # setting up all the contraints
-        self.initialise_row_set()
-    
-    def initialise_row_set(self):
-        # forming row_set
-        self.form_set(self.puzzle, self.row_set)
-        
-        # forming col_set
-        transposed_puzzle = self.transpose_puzzle(self.puzzle)
-        self.form_set(transposed_puzzle, self.col_set)
+        self.initialise_sets()
+        self.init_arc_consistency()
 
-        # forming box_set
-        self.form_box_set(self.puzzle, self.box_set)
-                               
-    def form_box_set(self, puzzle, set_dic):
+    # initial removal of domains using arc consistency algorithm
+    def init_arc_consistency(self):
+        for i, row in enumerate(self.puzzle):
+            for j, ele in enumerate(row):
+                if ele != 0:
+                    self.row_set[i].remove(ele)
+                    self.col_set[j].remove(ele)
+
+                    top_left_i = i // 3
+                    top_left_j = j // 3
+                    self.box_set[(top_left_i, top_left_j)].remove(ele)
+
+    def initialise_sets(self):
+        # initialising box_set
         for coord in self.box_coords:
-            i, j = coord
-            set_dic[coord] = set()
-            for row in range(i, i + 3):
-                for col in range(j, j + 3):
-                    if self.puzzle[row][col] != 0:
-                        set_dic[coord].add(self.puzzle[row][col])
+                box_set[coord] = set([1,2,3,4,5,6,7,8,9])
+        for i in range(9):
+            row_set[i] = set([1,2,3,4,5,6,7,8,9])
+            col_set[i] = set([1,2,3,4,5,6,7,8,9])
                         
-    def form_set(self, puzzle, set_dic):
+    def form_row_set(self, puzzle, set_dic):
         for i, row in enumerate(puzzle):
             set_dic[i] = set()
             for ele in row:
                 if ele != 0:
                     set_dic[i].add(ele)
+
+    def form_col_set(self, puzzle, set_dic):
+        for i in range(9):
+            for j in range(9):
+                
         
     def transpose_puzzle(self, puzzle):
         # Transpose the puzzle first
@@ -53,11 +59,29 @@ class Sudoku(object):
         return transposed_puzzle
 
     def solve(self):
-        #TODO: Your code here
-
+        # Main idea
+        
         # don't print anything here. just resturn the answer
         # self.ans is a list of lists
         return self.ans
+
+    
+    # check whether element is legal within the box surrounding the cell_ij
+    def check_in_box_set(self, ele, i, j):
+        top_left_i = i // 3
+        top_left_j = j // 3
+        if item in self.box_set[(top_left_i, top_left_j)]:
+            return True
+        else:
+            return False
+
+    # checks for common elements between row_set, col_set and box_set
+    def union_cell(self, coord):
+        ele_set = set()
+        for item in self.row_set[coord]:
+            if item in self.col_set[coord] and self.check_in_box_set(item, coord[0], coord[1]):
+                ele_set.add(item)
+        return ele_set
 
     # you may add more classes/functions if you think is useful
     # However, ensure all the classes/functions are in this file ONLY
