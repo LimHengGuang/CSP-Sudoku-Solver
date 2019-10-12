@@ -5,6 +5,12 @@ class Sudoku(object):
     def __init__(self, puzzle):
         # you may add more attributes if you need
         self.puzzle = puzzle # self.puzzle is a list of lists
+
+        # 2-D table of bool
+        # False if the value hasn't been fixed. True otherwise
+        self.puzzle_bool = [[False for i in range(len(puzzle[0]))] \
+                            for i in range(len(puzzle))]
+        
         self.ans = copy.deepcopy(puzzle) # self.ans is a list of lists
         self.row_set = {}
         self.col_set = {}
@@ -23,12 +29,9 @@ class Sudoku(object):
         for i, row in enumerate(self.puzzle):
             for j, ele in enumerate(row):
                 if ele != 0:
-                    self.row_set[i].remove(ele)
-                    self.col_set[j].remove(ele)
+                    # remove these elements from the domain
+                    self.manage_domains(i, j, ele, False)
 
-                    top_left_i = i // 3
-                    top_left_j = j // 3
-                    self.box_set[(top_left_i, top_left_j)].remove(ele)
 
     def initialise_sets(self):
         # initialising box_set
@@ -37,33 +40,87 @@ class Sudoku(object):
         for i in range(9):
             row_set[i] = set([1,2,3,4,5,6,7,8,9])
             col_set[i] = set([1,2,3,4,5,6,7,8,9])
-                        
-    def form_row_set(self, puzzle, set_dic):
-        for i, row in enumerate(puzzle):
-            set_dic[i] = set()
-            for ele in row:
-                if ele != 0:
-                    set_dic[i].add(ele)
+            
+    def manage_domains(self, i, j, ele, to_add):
+        '''
+        Takes in coordinates i, j
+        and the element to add/remove
+        If to_add is True, add ele into domains
+        Otherwise, remove ele from domains
+        '''
+        row_set = self.row_set[i]
+        col_set = self.col_set[j]
 
-    def form_col_set(self, puzzle, set_dic):
-        for i in range(9):
-            for j in range(9):
-                
+        top_left_i = i // 3
+        top_left_j = j // 3
+        box_set = self.box_set[(top_left_i, top_left_j)]
         
-    def transpose_puzzle(self, puzzle):
-        # Transpose the puzzle first
-        transposed_puzzle = [[0 for i in range(9)] for j in range(9)]
-        for i, row in enumerate(puzzle):
-            for j, ele in enumerate(row):
-                transposed_puzzle[j][i] = ele
-        return transposed_puzzle
-
+        if to_add:
+            row_set.add(ele)
+            col_set.add(ele)
+            box_set.add(ele)
+        else:
+            row_set.remove(ele)
+            col_set.remove(ele)
+            box_set.remove(ele)
+        
     def solve(self):
         # Main idea
         
         # don't print anything here. just resturn the answer
         # self.ans is a list of lists
+
+        self.solver_helper(self.ans)
+        
         return self.ans
+
+    # returns True if it manages to solve
+    # returns False if it encounters an empty domain
+    def solver_helper(self, puzzle):
+        # find cell with smallest domain
+        # then run a for-loop and continue to recurse with a value fixed
+        cell_set, coord = self.find_most_constrained_cell(puzzle, puzzle_bool)
+        if len(cell_set) == 0:
+            return False
+        else:
+            for ele in cell_set:
+                i, j = coord
+                puzzle[i][j] = ele
+                manage_domains(i, j, ele, False)
+                if not self.solver_helper(puzzle):
+                    # if this assignment does not work
+                    # then backtrack and undo the assignment
+                    puzzle[i][j] = 0
+                    manage_domains(i, j, ele, True)
+                    continue
+                else:
+                    return True
+            return False
+        
+    # using most constrained variable heuristic
+    def find_most_constrained_cell(self, puzzle, puzzle_bool):
+        min_set_size = float('inf')
+        min_set = None
+        min_set_coord = None
+        
+        for i, row in enumerate(puzzle):
+            for j, ele in enumerate(row):
+                # if the variable is not fixed yet
+                if puzzle[i][j] != 0:
+                    coord = (i, j)
+                    cell_set = self.get_cell_domain(coord)
+                    cell_set_size = len(cell_set)
+
+                    # if you found a cell with empty domain
+                    # return it immediately
+                    if cell_set_size == 0:
+                        return (cell_set, coord)
+                    
+                    if cell_set_size < min_set_size:
+                        min_set_size = cell_set_size
+                        min_set = cell_set
+                        min_set_coord = coord
+        return (min_set, min_set_coord)
 
     
     # check whether element is legal within the box surrounding the cell_ij
@@ -76,7 +133,12 @@ class Sudoku(object):
             return False
 
     # checks for common elements between row_set, col_set and box_set
-    def union_cell(self, coord):
+    def get_cell_domain(self, coord):
+        '''
+        Takes in the coordinate of a cell
+        Returns the domain of the cell,
+        which is the intersection between the 3 domains: row_set, col_set, box_set 
+        '''
         ele_set = set()
         for item in self.row_set[coord]:
             if item in self.col_set[coord] and self.check_in_box_set(item, coord[0], coord[1]):
