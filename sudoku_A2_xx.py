@@ -26,15 +26,16 @@ class Sudoku(object):
     def initialise_sets(self):
         '''initialising domains of rows, cols, and boxes'''
         for coord in self.box_coords:
-                box_set[coord] = set([1,2,3,4,5,6,7,8,9])
+                self.box_set[coord] = set([1,2,3,4,5,6,7,8,9])
         for i in range(9):
-            row_set[i] = set([1,2,3,4,5,6,7,8,9])
-            col_set[i] = set([1,2,3,4,5,6,7,8,9])
+            self.row_set[i] = set([1,2,3,4,5,6,7,8,9])
+            self.col_set[i] = set([1,2,3,4,5,6,7,8,9])
             
     def init_arc_consistency(self):
         '''initial removal of domains using arc consistency algorithm'''
         for i, row in enumerate(self.puzzle):
             for j, ele in enumerate(row):
+                # only care about non-empty spaces
                 if ele != 0:
                     # remove these elements from the domain
                     self.manage_domains(i, j, ele, False)
@@ -49,8 +50,8 @@ class Sudoku(object):
         row_set = self.row_set[i]
         col_set = self.col_set[j]
 
-        top_left_i = i // 3
-        top_left_j = j // 3
+        top_left_i = i - (i % 3)
+        top_left_j = j - (j % 3)
         box_set = self.box_set[(top_left_i, top_left_j)]
         
         if to_add:
@@ -78,6 +79,7 @@ class Sudoku(object):
         
         # find cell with smallest domain (most constrained variable heuristic)
         cell_set, coord = self.find_most_constrained_cell(puzzle)
+        #print(cell_set, coord)
 
         # if puzzle is completed, then return True
         if cell_set is None:
@@ -90,17 +92,16 @@ class Sudoku(object):
             for ele in cell_set:
                 i, j = coord
                 puzzle[i][j] = ele
-                manage_domains(i, j, ele, False)  # remove ele from domains
+                self.manage_domains(i, j, ele, False)  # remove ele from domains
                 if not self.solver_helper(puzzle):
                     # if this assignment does not work
                     # then backtrack and undo the assignment
                     puzzle[i][j] = 0
-                    manage_domains(i, j, ele, True) # add ele back to domains
+                    self.manage_domains(i, j, ele, True) # add ele back to domains
                 else:
                     return True
             return False
-        
-    # using most constrained variable heuristic
+    
     def find_most_constrained_cell(self, puzzle):
         '''
         This is a HEURISTIC function.
@@ -113,8 +114,8 @@ class Sudoku(object):
         
         for i, row in enumerate(puzzle):
             for j, ele in enumerate(row):
-                # if the variable is not fixed yet
-                if puzzle[i][j] != 0:
+                # if the variable has not been fixed yet (0 signifies empty cell)
+                if puzzle[i][j] == 0:
                     coord = (i, j)
                     cell_set = self.get_cell_domain(i, j)
                     cell_set_size = len(cell_set)
@@ -138,9 +139,9 @@ class Sudoku(object):
         If the element is within box domain, return True
         Otherwise, return False
         '''
-        top_left_i = i // 3
-        top_left_j = j // 3
-        if item in self.box_set[(top_left_i, top_left_j)]:
+        top_left_i = i - (i % 3)
+        top_left_j = j - (j % 3)
+        if ele in self.box_set[(top_left_i, top_left_j)]:
             return True
         else:
             return False
@@ -154,7 +155,7 @@ class Sudoku(object):
         ele_set = set()
         for ele in self.row_set[i]:
             if ele in self.col_set[j] and self.in_box_set(ele, i, j):
-                ele_set.add(item)
+                ele_set.add(ele)
         return ele_set
 
 
